@@ -2,12 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
+import Register from './pages/Register'; 
 import Index from './pages/Index';
 import Login from './pages/Login';
-import Register from './pages/Form'; 
 import LockDetail from './pages/LockDetail'; // Import the new component
 import Navbar from './components/Navbar';
-import './App.css';
+//import './App.css';
+
+console.log("Available routes:", [
+  { path: "/", component: "Index" },
+  { path: "/login", component: "Login" },
+  { path: "/register", component: "Register" },
+  { path: "/landing", component: "Home" },
+  { path: "/detail/:lockId", component: "LockDetail" }
+]);
 
 const App = () => {
 const [currentUser, setCurrentUser] = useState(null);
@@ -21,17 +29,19 @@ setCurrentUser(user);
 }, []);
 
 return (
-<Router>
+<>
 <Navbar currentUser={currentUser} />
 <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 <Route path="/landing" element={<Home />} />
 <Route path="/" element={<Index />} />
-//<Route path="/add" element={<Form setCurrentUser={setCurrentUser} />} /> //form
+
 <Route path="/detail/:lockId" element={<LockDetail />} /> {}
+        {/* Add a catch-all route */}
+        <Route path="*" element={<div>Page not found</div>} />
 </Routes>
-</Router>
+</>
 );
 };
 

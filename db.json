@@ -1,0 +1,7 @@
+{
+  "users": [],
+  "locks": [
+    { "id": "1", "isOpen": true },
+    { "id": "2", "isOpen": false }
+  ]
+}

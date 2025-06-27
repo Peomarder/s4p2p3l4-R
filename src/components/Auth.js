@@ -1,7 +1,10 @@
 //src/components/Auth.js
 
-import jwt from 'jsonwebtoken';
+//import jwt from 'jsonwebtoken';
 import md5 from 'md5';
+import {jwtDecode } from 'jwt-decode'; // Replace jsonwebtoken with this
+
+
 
 const API_BASE = 'http://217.71.129.139:4821/api';
 const TOKEN_KEY = 'energy_security_token';
@@ -40,8 +43,10 @@ export const getCurrentUser = () => {
   if (!token) return null;
   
   try {
-    const decoded = jwt.decode(token);
+const decoded = jwtDecode(token);
+console.log(decoded.userId);
     return decoded?.username || null;
+	
   } catch {
     return null;
   }
