@@ -1,15 +1,13 @@
-// src/pages/Register.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { registerUser } from '../components/Auth';
-//import './Auth.css';
 
 const Register = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [email, setEmail] = useState(''); // Add email field
-  const [name, setName] = useState('');   // Add name field
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [testResult, setTestResult] = useState(''); // New state for test result
   const navigate = useNavigate();
 
@@ -20,15 +18,15 @@ const Register = () => {
       alert('User registered successfully! Please login.');
       navigate('/login');
     } catch (err) {
-    const errorResponse = await err.response?.json();
-    setError(errorResponse?.error || 'Registration failed');
+      const errorResponse = await err.response?.json();
+      setError(errorResponse?.error || 'Registration failed');
     }
   };
-  
-    // New function to call the test endpoint
+
+  // New function to call the test endpoint
   const handleTest = async () => {
     try {
-      const response = await fetch('http://217.71.129.139:4821/api/test');
+      const response = await fetch('/api/test');
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const text = await response.text();
       setTestResult(text);
@@ -51,14 +49,14 @@ const Register = () => {
             required
           />
         </div>
-		<div className="form-group">
-        <label>Email:</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      </div>
-      <div className="form-group">
-        <label>Full Name:</label>
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-      </div>
+        <div className="form-group">
+          <label>Email:</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </div>
+        <div className="form-group">
+          <label>Full Name:</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
         <div className="form-group">
           <label>Password:</label>
           <input
@@ -69,7 +67,7 @@ const Register = () => {
           />
         </div>
         <button type="submit" className="submit-btn">Register</button>
-		
+        
         {/* Test API button */}
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
           <button 
@@ -92,6 +90,7 @@ const Register = () => {
             </div>
           )}
         </div>
+
         <div className="auth-footer">
           Already have an account? <a href="/login">Login</a>
         </div>

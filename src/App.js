@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Register from './pages/Register'; 
 import Index from './pages/Index';
 import Login from './pages/Login';
+//import Form from './pages/Form';
 import LockDetail from './pages/LockDetail'; // Import the new component
 import Navbar from './components/Navbar';
 //import './App.css';
@@ -36,6 +37,7 @@ return (
         <Route path="/register" element={<Register />} />
 <Route path="/landing" element={<Home />} />
 <Route path="/" element={<Index />} />
+
 
 <Route path="/detail/:lockId" element={<LockDetail />} /> {}
         {/* Add a catch-all route */}
