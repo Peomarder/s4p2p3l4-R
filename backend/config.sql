@@ -280,7 +280,7 @@ BEGIN
       'id_privilege', id_privilege,
       'exp', EXTRACT(EPOCH FROM NOW() + INTERVAL '1 hour')
     ),
-    'energy_security_token'
+    'TOKEN_KEY'
   ) INTO new_token
   FROM users WHERE id_user = user_id;
 

@@ -97,6 +97,7 @@ const generateToken = (user) => {
 };
 
 // Token verification middleware
+/*
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -108,8 +109,29 @@ const authenticateToken = (req, res, next) => {
     req.user = user;
     next();
   });
-};
+};*/
 
+
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) return res.sendStatus(401);
+  
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      // Handle token expiration specifically
+      if (err.name === 'TokenExpiredError') {
+        return res.status(403).json({ error: 'Token expired' });
+      }
+      return res.sendStatus(403);
+    }
+    
+    req.user = user;
+    next();
+  });
+}
 
 
 
@@ -118,7 +140,21 @@ const authenticateToken = (req, res, next) => {
 // ========================
 
 // User Registration
-
+// Token refresh endpoint
+app.post('/api/auth/refresh', async (req, res) => {
+  const { token } = req.body;
+  
+  if (!token) return res.sendStatus(401);
+  
+  try {
+    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    const accessToken = generateAccessToken({ id_user: decoded.id_user });
+    res.json({ token: accessToken });
+  } catch (error) {
+    console.error('Token refresh failed:', error);
+    res.sendStatus(403);
+  }
+});
 // User Registration
 app.post('/api/auth/register', async (req, res) => {
   console.log('[REGISTER] New registration request');
@@ -355,13 +391,35 @@ app.post('/api/auth/refresh', async (req, res) => {
 // =================
 // USER ENDPOINTS
 // =================
+// Updated /api/users endpoint
 app.get('/api/users', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, username FROM users');
-    console.log('[DB] Testing database connection...');
-    res.json(result.rows);
+    const result = await pool.query(`
+      SELECT 
+        u.id_user,
+        u.login,
+        u.name,
+        u.email,
+        u.created_at,
+        p.name AS privilege_name
+      FROM users u
+      JOIN user_privileges p ON u.id_privilege = p.id_privilege
+    `);
+    
+    // Format the response to match client expectations
+    const users = result.rows.map(user => ({
+      id_user: user.id_user,
+      login: user.login,
+      name: user.name,
+      email: user.email,
+      privilege_name: user.privilege_name,
+      created_at: user.created_at
+    }));
+    
+    res.json(users);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Database error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -386,21 +444,21 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/users/:id', authenticateToken, async (req, res) => {
-  const id = parseInt(req.params.id);
+app.delete('/api/users/:userId', authenticateToken, async (req, res) => {
+  const userId = parseInt(req.params.userId);
   
-  if (isNaN(id)) {
+  if (isNaN(userId)) {
     return res.status(400).json({ error: 'Invalid user ID' });
   }
 
   try {
-    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+    const result = await pool.query('DELETE FROM users WHERE id_user = $1 RETURNING id_user', [userId]);
     
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.json({ message: `User ${id} deleted` });
+    res.json({ message: `User ${userId} deleted` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -440,12 +498,11 @@ app.post('/api/auth/validate', async (req, res) => {
 // =================
 app.get('/api/locks', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, description, is_open FROM locks');
+    const result = await pool.query('SELECT id_lock, id_privilege, is_open, last_modified FROM locks');
     const locks = result.rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      isOpen: row.is_open
+      id: row.id_lock,
+      name: row.id_privilege,
+      is_open: row.is_open
     }));
     res.json(locks);
   } catch (err) {
@@ -453,12 +510,14 @@ app.get('/api/locks', authenticateToken, async (req, res) => {
   }
 });
 
+
+
 app.get('/api/locks/:lockId', authenticateToken, async (req, res) => {
   const lockId = req.params.lockId;
   
   try {
     const result = await pool.query(
-      'SELECT id, name, description, is_open FROM locks WHERE id = $1', 
+      'SELECT id_lock, id_privilege, is_open, last_modified FROM locks WHERE id_lock = $1', 
       [lockId]
     );
     
@@ -467,10 +526,9 @@ app.get('/api/locks/:lockId', authenticateToken, async (req, res) => {
     }
     
     const lock = {
-      id: result.rows[0].id,
+      id_lock: result.rows[0].id_lock,
       name: result.rows[0].name,
-      description: result.rows[0].description,
-      isOpen: result.rows[0].is_open
+      is_open: result.rows[0].is_open
     };
     
     res.json(lock);
@@ -479,60 +537,25 @@ app.get('/api/locks/:lockId', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/locks', authenticateToken, async (req, res) => {
-  const { id, name, description } = req.body;
-  
-  if (!id || !name) {
-    return res.status(400).json({ error: 'Lock ID and name required' });
-  }
 
-  try {
-    const result = await pool.query(
-      `INSERT INTO locks (id, name, description) 
-       VALUES ($1, $2, $3) 
-       RETURNING id, name, description, is_open`,
-      [id, name, description]
-    );
-    
-    const newLock = {
-      id: result.rows[0].id,
-      name: result.rows[0].name,
-      description: result.rows[0].description,
-      isOpen: result.rows[0].is_open
-    };
-    
-    // Log the creation
-    await pool.query(
-      'INSERT INTO log_entries (user_id, lock_id, action, details) VALUES ($1, $2, $3, $4)',
-      [req.user.id, id, 'create', { name, description }]
-    );
-    
-    res.status(201).json(newLock);
-  } catch (err) {
-    if (err.code === '23505') {
-      return res.status(409).json({ error: 'Lock ID exists' });
-    }
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
-
-
+// LOCK UPDATE ENDPOINT (simplified logging)
 app.put('/api/locks/:lockId', authenticateToken, async (req, res) => {
   const lockId = req.params.lockId;
-  const isOpen = req.body.isOpen !== undefined ? req.body.isOpen : req.body.is_open;
+  const is_open = req.body.is_open !== undefined ? req.body.is_open : req.body.is_open;
   
-  if (typeof isOpen !== 'boolean') {
-    return res.status(400).json({ error: 'isOpen must be boolean' });
+  if (typeof is_open !== 'boolean') {
+    return res.status(400).json({ error: 'is_open must be boolean' });
   }
 
   try {
+    // Update lock status
     const result = await pool.query(
-      `UPDATE locks SET is_open = $1 
-       WHERE id = $2 
-       RETURNING id, name, description, is_open AS "isOpen"`,
-      [isOpen, lockId]
+      `UPDATE locks SET 
+        is_open = $1,
+        last_modified = CURRENT_TIMESTAMP
+       WHERE id_lock = $2 
+       RETURNING id_lock, id_privilege, last_modified, is_open`,
+      [is_open, lockId]
     );
     
     if (result.rowCount === 0) {
@@ -541,14 +564,73 @@ app.put('/api/locks/:lockId', authenticateToken, async (req, res) => {
     
     const updatedLock = result.rows[0];
     
-    // Log the status change
+    // Log the status change (simplified without details)
     await pool.query(
-      'INSERT INTO log_entries (user_id, lock_id, action, details) VALUES ($1, $2, $3, $4)',
-      [req.user.id, lockId, 'update', { status: isOpen ? 'open' : 'closed' }]
+      `INSERT INTO log_entries (id_user, id_lock, id_action)
+       VALUES ($1, $2, $3)`,
+      [req.user.id_user, lockId, 2] // 2 = 'update' action
     );
     
-    res.json(updatedLock);
+    res.json({
+      id_lock: updatedLock.id_lock,
+      privilegeId: updatedLock.id_privilege,
+      is_open: updatedLock.is_open,
+      lastModified: updatedLock.last_modified
+    });
   } catch (err) {
+    console.error('Lock update error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// LOCK CREATION ENDPOINT (simplified logging)
+app.post('/api/locks', authenticateToken, async (req, res) => {
+  const { id_lock } = req.body;
+  
+  if (!id_lock) {
+    return res.status(400).json({ error: 'Lock ID required' });
+  }
+
+  try {
+    // Get default privilege ID
+    const privResult = await pool.query(
+      `SELECT id_privilege FROM user_privileges WHERE name = 'default'`
+    );
+    
+    if (privResult.rows.length === 0) {
+      return res.status(400).json({ error: 'Default privilege not found' });
+    }
+    
+    const privilegeId = privResult.rows[0].id_privilege;
+    
+    // Create lock
+    const result = await pool.query(
+      `INSERT INTO locks (id_lock, id_privilege) 
+       VALUES ($1, $2) 
+       RETURNING id_lock, id_privilege, is_open, last_modified`,
+      [id_lock, privilegeId]
+    );
+    
+    const newLock = result.rows[0];
+    
+    // Log creation (simplified without details)
+    await pool.query(
+      `INSERT INTO log_entries (id_user, id_lock, id_action)
+       VALUES ($1, $2, $3)`,
+      [req.user.id_user, id_lock, 1] // 1 = 'create' action
+    );
+    
+    res.status(201).json({
+      id_lock: newLock.id_lock,
+      privilegeId: newLock.id_privilege,
+      is_open: newLock.is_open,
+      lastModified: newLock.last_modified
+    });
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Lock ID exists' });
+    }
+    console.error('Lock creation error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -556,7 +638,7 @@ app.put('/api/locks/:lockId', authenticateToken, async (req, res) => {
 app.delete('/api/locks/:lockId', authenticateToken, async (req, res) => {
   const lockId = req.params.lockId;
   try {
-    const result = await pool.query('DELETE FROM locks WHERE id = $1 RETURNING id, name', [lockId]);
+    const result = await pool.query('DELETE FROM locks WHERE id_lock = $1 RETURNING id_lock, name', [lockId]);
     
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Lock not found' });
@@ -564,8 +646,8 @@ app.delete('/api/locks/:lockId', authenticateToken, async (req, res) => {
     
     // Log the deletion
     await pool.query(
-      'INSERT INTO log_entries (user_id, lock_id, action, details) VALUES ($1, $2, $3, $4)',
-      [req.user.id, lockId, 'delete', { name: result.rows[0].name }]
+      'INSERT INTO log_entries (id_user, id_lock, id_action) VALUES ($1, $2, $3)',
+      [req.user.id_user, lockId, 'delete', { name: result.rows[0].name }]
     );
     
     res.json({ message: `Lock ${lockId} deleted` });
@@ -586,7 +668,7 @@ app.post('/api/privileges', authenticateToken, async (req, res) => {
 
   try {
     await pool.query(
-      'INSERT INTO user_privileges (user_id, lock_id) VALUES ($1, $2)',
+      'INSERT INTO user_privileges (id_user, id_lock) VALUES ($1, $2)',
       [userId, lockId]
     );
     
@@ -608,10 +690,10 @@ app.get('/api/privileges/:userId', authenticateToken, async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT l.id, l.name 
+      `SELECT l.id, l.id_privilege 
        FROM locks l
-       JOIN user_privileges up ON l.id = up.lock_id
-       WHERE up.user_id = $1`,
+       JOIN user_privileges up ON l.id = up.id_lock
+       WHERE up.id_user = $1`,
       [userId]
     );
     
@@ -628,15 +710,14 @@ app.get('/api/logs', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT 
-        le.id, 
-        u.username, 
-        l.id AS lock_id, 
-        le.action, 
-        le.details, 
+        le.id_log, 
+        u.login, 
+        l.id_lock AS id_lock, 
+        le.id_action,
         le.timestamp
        FROM log_entries le
-       LEFT JOIN users u ON le.user_id = u.id
-       LEFT JOIN locks l ON le.lock_id = l.id
+       LEFT JOIN users u ON le.id_user = u.id_user
+       LEFT JOIN locks l ON le.id_lock = l.id_lock
        ORDER BY le.timestamp DESC`
     );
     res.json(result.rows);
@@ -651,14 +732,14 @@ app.get('/api/logs/:lockId', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT 
-        le.id, 
-        u.username, 
-        le.action, 
+        le.id_log, 
+        u.login, 
+        le.id_action, 
         le.details, 
         le.timestamp
        FROM log_entries le
-       LEFT JOIN users u ON le.user_id = u.id
-       WHERE le.lock_id = $1
+       LEFT JOIN users u ON le.id_user = u.id_user
+       WHERE le.id_lock = $1
        ORDER BY le.timestamp DESC`,
       [lockId]
     );
@@ -681,10 +762,10 @@ app.post('/api/actions', authenticateToken, async (req, res) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO log_entries (user_id, lock_id, action, details)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO log_entries (id_user, id_lock, id_action)
+       VALUES ($1, $2, $3)
        RETURNING *`,
-      [req.user.id, lockId, actionType, details]
+      [req.user.id_user, lockId, actionType]
     );
     
     res.status(201).json(result.rows[0]);
@@ -704,23 +785,42 @@ app.get('/api/config', (req, res) => {
 
 app.post('/api/log-action', async (req, res) => {
   try {
-    const { action_id, lock_id } = req.body;
+    const { action_id, id_lock } = req.body;
     const token = req.headers.authorization.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Set user ID in session context for trigger functions
-    await pool.query(`SET app.user_id = ${decoded.id_user}`);
+    await pool.query(`SET app.id_user = ${decoded.id_user}`);
     
     // Log the action
     await pool.query(
       `SELECT log_action($1, $2)`,
-      [action_id, lock_id]
+      [id_action, id_lock]
     );
     
     res.status(200).json({ success: true });
   } catch (error) {
     console.error('Logging error:', error);
     res.status(500).json({ error: 'Failed to log action' });
+  }
+});
+
+// Add this endpoint for system logs
+app.get('/api/system-logs', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        id_system_log,
+        id_action,
+        affected_ip,
+        timestamp
+      FROM system_log
+      ORDER BY timestamp DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
