@@ -5,7 +5,7 @@ import Home from './pages/Home';
 import Register from './pages/Register'; 
 import Index from './pages/Index';
 import Login from './pages/Login';
-//import Form from './pages/Form';
+import Logs from './pages/Logs';
 import LockDetail from './pages/LockDetail'; // Import the new component
 import Navbar from './components/Navbar';
 //import './App.css';
@@ -14,7 +14,8 @@ console.log("Available routes:", [
   { path: "/", component: "Index" },
   { path: "/login", component: "Login" },
   { path: "/register", component: "Register" },
-  { path: "/landing", component: "Home" },
+  { path: "/landing", component: "Home" },,
+  { path: "/logs", component: "Logs" },
   { path: "/detail/:lockId", component: "LockDetail" }
 ]);
 
@@ -37,7 +38,7 @@ return (
         <Route path="/register" element={<Register />} />
 <Route path="/landing" element={<Home />} />
 <Route path="/" element={<Index />} />
-
+<Route path="/logs" element={<Logs />} />
 
 <Route path="/detail/:lockId" element={<LockDetail />} /> {}
         {/* Add a catch-all route */}

@@ -7,7 +7,7 @@ import {jwtDecode } from 'jwt-decode'; // Replace jsonwebtoken with this
 
 
 const API_BASE = 'http://217.71.129.139:4821/api';
-const TOKEN_KEY = 'TOKEN_KEY';
+const TOKEN_KEY = 'energy_security_token';
 
 
 export const registerUser = async (username, password, email, name) => {
@@ -124,7 +124,7 @@ export const getCurrentUser = async () => {
   }
 };
 */
-/*
+
 export const getCurrentUser = async () => {
   const token = localStorage.getItem(TOKEN_KEY);
   if (!token) return null;
@@ -167,82 +167,7 @@ export const getCurrentUser = async () => {
     console.error('Error fetching user:', error);
     return null;
   }
-};*/
-
-
-// Add this API request wrapper function
-export const authFetch = async (url, options = {}) => {
-  // Add authorization header
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (token) {
-    options.headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`
-    };
-  }
-  
-  // First try the request
-  let response = await fetch(`${url}`, options);
-  
-  // If unauthorized, try refreshing token
-  if (response.status === 401) {
-    const newToken = await refreshToken();
-    if (newToken) {
-      // Retry with new token
-      options.headers = {
-        ...options.headers,
-        'Authorization': `Bearer ${newToken}`
-      };
-      response = await fetch(`${url}`, options);
-    }
-  }
-  
-  return response;
 };
-
-// Update getCurrentUser to use authFetch
-export const getCurrentUser = async () => {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) return null;
-  
-  const now = Date.now();
-  if (cachedUser && (now - lastFetchTime < 300000)) {
-    return cachedUser;
-  }
-  
-  try {
-    const decoded = jwtDecode(token);
-    const userId = decoded.id_user;
-
-    // Use authFetch instead of fetch
-    const response = await authFetch(`${API_BASE}/users/${userId}`);
-    
-    if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem(TOKEN_KEY);
-        cachedUser = null;
-      }
-      return null;
-    }
-    
-    const userData = await response.json();
-    
-    cachedUser = {
-      id: userData.id_user,
-      username: userData.login,
-      name: userData.name,
-      email: userData.email,
-      privilege: userData.privilege_name
-    };
-    
-    lastFetchTime = Date.now();
-    return cachedUser;
-  } catch (error) {
-    console.error('Error fetching user:', error);
-    return null;
-  }
-};
-
 
 
 

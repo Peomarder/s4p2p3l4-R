@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './LockDetail.css';
+import { authFetch } from '../components/Auth';
 
 const LockDetail = () => {
   const { lockId } = useParams();
@@ -13,7 +14,7 @@ const fetchLockDetails = async () => {
   try {
     setLoading(true);
     console.log("Fetching lock:", lockId);
-    const response = await fetch(`http://217.71.129.139:4821/api/locks/${lockId}`);
+    const response = await authFetch(`http://217.71.129.139:4821/api/locks/${lockId}`);
     
     if (!response.ok) {
       throw new Error(`Lock not found (ID: ${lockId})`);
@@ -43,11 +44,11 @@ const toggleLockStatus = async () => {
   
   try {
     const newStatus = !lock.is_open;
-    const response = await fetch(`http://217.71.129.139:4821/api/locks/${lockId}`, {
+    const response = await authFetch(`http://217.71.129.139:4821/api/locks/${lockId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       // Send isOpen instead of is_open
-      body: JSON.stringify({ isOpen: newStatus }),
+      body: JSON.stringify({ is_open: newStatus }),
     });
 
     if (!response.ok) {
@@ -95,7 +96,7 @@ const toggleLockStatus = async () => {
           <label className="detail-label">
             Lock ID:
           </label>
-          <p className="detail-value">{lock?.id}</p>
+          <p className="detail-value">{lock?.id_lock}</p>
         </div>
         
         <div className="detail-item">

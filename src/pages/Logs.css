@@ -1,0 +1,130 @@
+.logs-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+h2 {
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.tab-button {
+  padding: 10px 20px;
+  margin: 0 10px;
+  background-color: #f1f1f1;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.tab-button:hover {
+  background-color: #ddd;
+}
+
+.tab-button.active {
+  background-color: #3498db;
+  color: white;
+}
+
+.log-table-container {
+  overflow-x: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  background: white;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.log-table th {
+  background-color: #3498db;
+  color: white;
+  padding: 12px 15px;
+  font-weight: 600;
+}
+
+.log-table td {
+  padding: 10px 15px;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.log-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.log-table tr:hover {
+  background-color: #f1f9ff;
+}
+
+.log-table a {
+  color: #2980b9;
+  text-decoration: none;
+}
+
+.log-table a:hover {
+  text-decoration: underline;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #7f8c8d;
+}
+
+.error-message {
+  background-color: #ffebee;
+  border-left: 4px solid #e53935;
+  padding: 15px;
+  margin: 20px 0;
+  border-radius: 4px;
+  color: #c62828;
+}
+
+.retry-button {
+  background-color: #e53935;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  margin-top: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.retry-button:hover {
+  background-color: #c62828;
+}
+
+.footer {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.back-link {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #3498db;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.back-link:hover {
+  background-color: #2980b9;
+}

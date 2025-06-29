@@ -150,67 +150,63 @@ const Index = () => {
   };
 
   return (
-  <div className="index-container">
-    <div className="section-container">
-      <h2>Users</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td>{user.id}</td>
-              <td>{user.username}</td>
-              <td>{user.name}</td>
-              <td>{user.email}</td>
-              <td className="actions-cell">
-                <button onClick={() => deleteUser(user.id)}>Delete</button>
-              </td>
+    <>
+      <div>
+        <h2>Users</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td>{user.id}</td>
+                <td>{user.username}</td>
+                <td>{user.name}</td>
+                <td>{user.email}</td>
+                <td>
+                  <button onClick={() => deleteUser(user.id)}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-    <div className="section-container">
-      <h2>Locks</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {locks.map((lock) => (
-            <tr key={lock.id}>
-              <td>{lock.id}</td>
-              <td className={lock.is_open ? 'status-open' : 'status-closed'}>
-                {lock.is_open ? 'Open' : 'Closed'}
-              </td>
-              <td className="actions-cell">
-                <button onClick={() => updateLockStatus(lock.id, lock.is_open)}>
-                  Toggle Status
-                </button>
-                <button onClick={() => deleteLock(lock.id)}>Delete</button>
-                <Link to={`/detail/${lock.id}`}>View Details</Link>
-              </td>
+        <h2>Locks</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {locks.map((lock) => (
+              <tr key={lock.id}>
+                <td>{lock.id}</td>
+                <td>{lock.name}</td>
+                <td>{lock.is_open ? 'Open' : 'Closed'}</td>
+                <td>
+                  <button onClick={() => updateLockStatus(lock.id, lock.is_open)}>
+                    Toggle Status
+                  </button>
+                  <button onClick={() => deleteLock(lock.id)}>Delete</button>
+                  <Link to={`/detail/${lock.id}`}>View Details</Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-      <h3>Add New Lock</h3>
-      <div className="add-lock-form">
+        <h3>Add New Lock</h3>
         <input
           type="number"
           value={newLockId}
@@ -219,11 +215,8 @@ const Index = () => {
         />
         <button onClick={() => addLock(newLockId)}>Add Lock</button>
       </div>
-    </div>
-  </div>
-);
-  
-  
+    </>
+  );
 };
 
 export default Index;
